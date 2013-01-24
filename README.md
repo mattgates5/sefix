@@ -7,12 +7,12 @@ Simple script to respond to SELinux AVC Denials
 
 Usage
 -----
-    # sefix [searchname]
+    # ./sefix [searchname]
 
 Examples
 --------
-    # sefix vsftpd
-    # sefix sshd
+    # ./sefix vsftpd
+    # ./sefix sshd
 
 Process
 -------
