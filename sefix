@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# sefix
+#  searches audit log for SELinux denials and
+#  generates policy to reverse the denial,
+#  then installs the policy
+
+# Command usage
+usage() {
+     echo "sefix [searchname]"
+}
+
+# Assert commands
+assert() {
+     which $1 &> /dev/null; RETVAL=$?
+     [[ $RETVAL -gt 0 ]] && echo "$1 command not found." && exit 1
+}
+
+# If no search parameter provided print usage and exit
+[[ -z $1 ]] && usage && exit 1
+
+# If audit.log not found exit
+[[ ! -r /var/log/audit/audit.log ]] && echo "audit.log not found" && exit 1
+
+# Commands to be used
+COMMANDS="grep audit2allow semodule"
+
+# Assert the commands in this script
+for i in $COMMANDS
+do
+     assert $i
+done
+
+# Check SELinux
+case "$(getenforce)" in
+     Enforcing)
+       echo "SELinux enforcing..."
+       ;;
+     Permissive)
+       echo "SELinux permissive..."
+       ;;
+     Disabled)
+       echo "SELinux disabled. No policy will be updated."
+       exit 1
+       ;;
+     *)
+       :
+esac
+
+SEARCH=$1
+POLICY=$1.pp
+TEFILE=$1.te
+
+# If a policy file already exists, delete it.
+[[ -f $POLICY ]] && rm -f $POLICY
+
+grep $SEARCH /var/log/audit/audit.log | audit2allow -M $SEARCH
+semodule -i $POLICY
+
+rm -f $POLICY $TEFILE
+
+case "$?" in
+     0)
+       echo "Policy for $SEARCH successfully updated"
+       ;;
+     *)
+       echo "Policy update unsuccessful"
+esac
